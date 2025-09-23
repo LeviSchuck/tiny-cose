@@ -38,7 +38,7 @@ import {
   RSASSA_PSS_SHA_384,
   RSASSA_PSS_SHA_512,
 } from "./constants.ts";
-import { CBORType } from "./deps.ts";
+import type { CBORType } from "./deps.ts";
 import { decodeBase64, decodeBase64Url } from "@levischuck/tiny-encodings";
 import { decodeCBOR } from "@levischuck/tiny-cbor";
 import { parseCBORToCOSEKey } from "./parse.ts";

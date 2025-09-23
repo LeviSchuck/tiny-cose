@@ -12,7 +12,7 @@ import {
   KEY_OP_MAC_VERIFY,
   KEY_OP_SIGN,
   KEY_OP_VERIFY,
-  KEY_OPS_ALL,
+  type KEY_OPS_ALL,
   KTY_EC2,
   KTY_OKP,
   KTY_RSA,
@@ -26,7 +26,7 @@ import {
   RSASSA_PSS_SHA_512,
 } from "./constants.ts";
 import { decodeBase64Url, encodeBase64Url } from "./deps.ts";
-import {
+import type {
   COSEPrivateKey,
   COSEPublicKey,
   COSESymmetricKey,
@@ -40,7 +40,7 @@ import {
   RSASSA_PSS_Private_COSE_Key,
   RSASSA_PSS_Public_COSE_Key,
 } from "./types.ts";
-import { COSEKeyAll } from "./index.ts";
+import type { COSEKeyAll } from "./index.ts";
 
 function keyOps(
   ops: string[],

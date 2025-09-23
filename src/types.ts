@@ -1,4 +1,4 @@
-import {
+import type {
   ALG_ALL,
   EC2_CRV_ALL,
   ECDSA_ALG,

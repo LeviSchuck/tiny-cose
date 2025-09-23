@@ -1,9 +1,9 @@
 import {
-  EC2_CRV_ALL,
+  type EC2_CRV_ALL,
   EC2_CRV_P256,
   EC2_CRV_P384,
   EC2_CRV_P521,
-  ECDSA_ALG,
+  type ECDSA_ALG,
   ECDSA_SHA_256,
   ECDSA_SHA_384,
   ECDSA_SHA_512,
@@ -15,7 +15,7 @@ import {
   KEY_OP_MAC_VERIFY,
   KEY_OP_SIGN,
   KEY_OP_VERIFY,
-  KEY_OPS_ALL,
+  type KEY_OPS_ALL,
   KTY_EC2,
   KTY_OKP,
   KTY_RSA,
@@ -28,9 +28,9 @@ import {
   RSASSA_PSS_SHA_384,
   RSASSA_PSS_SHA_512,
 } from "./constants.ts";
-import { CBORType } from "./deps.ts";
-import { COSEKeyAll } from "./index.ts";
-import {
+import type { CBORType } from "./deps.ts";
+import type { COSEKeyAll } from "./index.ts";
+import type {
   ECDSA_Private_COSE_Key,
   ECDSA_Public_COSE_Key,
   EDDSA_Private_COSE_Key,

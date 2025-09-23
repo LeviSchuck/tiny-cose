@@ -1,4 +1,5 @@
 {
+  "version": "0.0.9",
   "tasks": {
     "test": "deno test --watch",
     "npm": "deno run --allow-env --allow-read --allow-write --allow-run --allow-net scripts/npm.ts"

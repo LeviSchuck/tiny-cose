@@ -3,8 +3,8 @@ import {
   assertEquals,
   assertNotEquals,
   assertRejects,
-} from "https://deno.land/std@0.195.0/assert/mod.ts";
-import { describe, it } from "https://deno.land/std@0.195.0/testing/bdd.ts";
+} from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
 import {
   exportPrivateKey,
   exportPublicKey,
@@ -39,11 +39,8 @@ import {
   RSASSA_PSS_SHA_512,
 } from "./constants.ts";
 import { CBORType } from "./deps.ts";
-import {
-  decodeBase64,
-  decodeBase64Url,
-} from "https://deno.land/x/tiny_encodings@0.2.1/encoding.ts";
-import { decodeCBOR } from "https://deno.land/x/tiny_cbor@0.2.2/cbor/cbor.ts";
+import { decodeBase64, decodeBase64Url } from "@levischuck/tiny-encodings";
+import { decodeCBOR } from "@levischuck/tiny-cbor";
 import { parseCBORToCOSEKey } from "./parse.ts";
 
 const ENCODER = new TextEncoder();
@@ -555,12 +552,13 @@ describe("Importing keys", () => {
     );
     const coseKey = parseCBORToCOSEKey(cbor);
     const { key } = await importPublicKey(coseKey);
+    const bytes = new Uint8Array(decodeBase64Url(
+      "F88zCMVUxVCQVBpT_HVEcceQ-g9q2RDm3u1olumXg-n5lFaM2S1lap8Vmb2z5wkmpf8pVryvaTJuJWiQ34A9bDLw3OvppvrBTMZxk3GocLCqRfjCNicL3AR70Vl-lHkaSNnH5iW8OT-yShAmB9OYNfqzcL3loeDNBgGV3LMqKrDu4JsDYL5v7-n4C0jwaWLeQdXQFUmtDy_-oKneOczksPDitoL9hi-T7KNGQzgAOqdBZXksdiYfouTxjqSMh38-2DCNpSHkdF-RKpeuGajXp1MDMkh9ZtCSvjJ1Lg975yxDX5txzEZZuTUznIRO31wdYhlYPQ05VshOnP5uHlm4iA",
+    ));
     const verified = await crypto.subtle.verify(
       { name: "RSASSA-PKCS1-v1_5" },
       key,
-      decodeBase64Url(
-        "F88zCMVUxVCQVBpT_HVEcceQ-g9q2RDm3u1olumXg-n5lFaM2S1lap8Vmb2z5wkmpf8pVryvaTJuJWiQ34A9bDLw3OvppvrBTMZxk3GocLCqRfjCNicL3AR70Vl-lHkaSNnH5iW8OT-yShAmB9OYNfqzcL3loeDNBgGV3LMqKrDu4JsDYL5v7-n4C0jwaWLeQdXQFUmtDy_-oKneOczksPDitoL9hi-T7KNGQzgAOqdBZXksdiYfouTxjqSMh38-2DCNpSHkdF-RKpeuGajXp1MDMkh9ZtCSvjJ1Lg975yxDX5txzEZZuTUznIRO31wdYhlYPQ05VshOnP5uHlm4iA",
-      ),
+      bytes,
       ENCODER.encode("Hello world"),
     );
     assert(verified);
@@ -584,12 +582,13 @@ describe("Importing keys", () => {
     );
     const coseKey = parseCBORToCOSEKey(cbor);
     const { key } = await importPublicKey(coseKey);
+    const bytes = new Uint8Array(decodeBase64Url(
+      "ds2xLiNSQoqv3OAy-Q8l0QuZ7hLsshtNayxf9seId4Yx39xCzfzipQBuqYx0gQa6o1Ketq49Ph092qRtbwjRiQ",
+    ));
     const verified = await crypto.subtle.verify(
       { name: "ECDSA", hash: { name: "SHA-256" } },
       key,
-      decodeBase64Url(
-        "ds2xLiNSQoqv3OAy-Q8l0QuZ7hLsshtNayxf9seId4Yx39xCzfzipQBuqYx0gQa6o1Ketq49Ph092qRtbwjRiQ",
-      ),
+      bytes,
       ENCODER.encode("Hello world"),
     );
     assert(verified);
@@ -613,12 +612,13 @@ describe("Importing keys", () => {
     );
     const coseKey = parseCBORToCOSEKey(cbor);
     const { key } = await importPublicKey(coseKey);
+    const bytes = new Uint8Array(decodeBase64Url(
+      "NXTlvCErNKKo2hBxJlniLh7NlBXsTiKXAQROfULE3JPmwYjLSTneTU-pvCTHKtC-zAXrltoOgQ7GuT3-jYT-Aw",
+    ));
     const verified = await crypto.subtle.verify(
       { name: "Ed25519" },
       key,
-      decodeBase64Url(
-        "NXTlvCErNKKo2hBxJlniLh7NlBXsTiKXAQROfULE3JPmwYjLSTneTU-pvCTHKtC-zAXrltoOgQ7GuT3-jYT-Aw",
-      ),
+      bytes,
       ENCODER.encode("Hello world"),
     );
     assert(verified);

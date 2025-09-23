@@ -8,7 +8,12 @@
     "exclude": ["npm"]
   },
   "fmt": {
-    "exclude": ["npm"]
+    "exclude": [
+      "npm",
+      "CHANGELOG.md",
+      ".github",
+      ".vscode"
+    ]
   },
   "imports": {
     "@deno/dnt": "jsr:@deno/dnt@^0.42.3",

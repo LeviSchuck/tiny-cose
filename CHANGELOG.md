@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.13](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.12...v0.0.13) (2025-09-23)
+
+
+### Bug Fixes
+
+* Fix readme link ([70582c8](https://github.com/LeviSchuck/tiny-cose/commit/70582c87e5d715d97965de38ae33424c23f4769a))
+* Update readme ([d2f1e75](https://github.com/LeviSchuck/tiny-cose/commit/d2f1e75d376ba87672e7ce6d1e4571d03b74366a))
+
 ## [0.0.12](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.11...v0.0.12) (2025-09-23)
 
 

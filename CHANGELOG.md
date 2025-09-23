@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.11](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.10...v0.0.11) (2025-09-23)
+
+
+### Bug Fixes
+
+* Add codecov token ([18e2536](https://github.com/LeviSchuck/tiny-cose/commit/18e25365b85b8a147c0b3e7c251c5c69179df068))
+* Add name field ([d4595f7](https://github.com/LeviSchuck/tiny-cose/commit/d4595f71fefa9c5b3106c99fb807f0cf064fa455))
+
 ## [0.0.10](https://github.com/LeviSchuck/tiny-cose/compare/0.0.9...v0.0.10) (2025-09-23)
 
 

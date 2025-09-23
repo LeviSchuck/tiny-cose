@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.12](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.11...v0.0.12) (2025-09-23)
+
+
+### Bug Fixes
+
+* Add deno exports ([41afe3d](https://github.com/LeviSchuck/tiny-cose/commit/41afe3df3e8097499bdb2f1b306025ecb33d9dce))
+* Deno lint ([6e023ff](https://github.com/LeviSchuck/tiny-cose/commit/6e023ff0d41f0cfceddd5c92e96f69afb3be477a))
+
 ## [0.0.11](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.10...v0.0.11) (2025-09-23)
 
 

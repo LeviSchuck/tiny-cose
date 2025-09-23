@@ -5,6 +5,8 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-22.04
+    permissions:
+      id-token: write # Used for OIDC to Codecov
     steps:
       - uses: actions/checkout@v5
       - uses: denoland/setup-deno@v2

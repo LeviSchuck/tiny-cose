@@ -14,7 +14,9 @@ function findHighestVersion(pattern: string): string | null {
 
   for (const [key, version] of Object.entries(lockFile.specifiers)) {
     if (regex.test(key) && typeof version === "string") {
-      if (highestVersion === null || compareVersions(version, highestVersion) > 0) {
+      if (
+        highestVersion === null || compareVersions(version, highestVersion) > 0
+      ) {
         highestVersion = version;
       }
     }
@@ -45,10 +47,14 @@ function compareVersions(a: string, b: string): number {
 }
 
 const tinyCborVersion = findHighestVersion("jsr:@levischuck/tiny-cbor@*");
-const tinyEncodingsVersion = findHighestVersion("jsr:@levischuck/tiny-encodings@*");
+const tinyEncodingsVersion = findHighestVersion(
+  "jsr:@levischuck/tiny-encodings@*",
+);
 
 if (!tinyCborVersion || !tinyEncodingsVersion) {
-  throw new Error(`Failed to get version from deno.lock: ${tinyCborVersion} ${tinyEncodingsVersion}`);
+  throw new Error(
+    `Failed to get version from deno.lock: ${tinyCborVersion} ${tinyEncodingsVersion}`,
+  );
 }
 
 await emptyDir("./npm");
@@ -60,7 +66,7 @@ await build({
     deno: true,
   },
   test: false,
-   // Deno to node doesn't support mapping JSR to NPM for some reason :/
+  // Deno to node doesn't support mapping JSR to NPM for some reason :/
   // mappings: {
   //   ["jsr:@levischuck/tiny-cbor"]: {
   //     name: "@levischuck/tiny-cbor",

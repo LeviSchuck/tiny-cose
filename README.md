@@ -1,6 +1,6 @@
 # Tiny COSE
 
-[![](https://img.shields.io/github/actions/workflow/status/levischuck/tiny-cose/build.yaml?branch=main&style=flat-square)](https://github.com/LeviSchuck/tiny-cose/actions)
+[![](https://img.shields.io/github/actions/workflow/status/levischuck/tiny-cose/build.yml?branch=main&style=flat-square)](https://github.com/LeviSchuck/tiny-cose/actions)
 [![](https://img.shields.io/codecov/c/gh/levischuck/tiny-cose?style=flat-square)](https://codecov.io/gh/levischuck/tiny-cose)
 [![](https://img.shields.io/github/v/tag/levischuck/tiny-cose?label=npm&logo=npm&style=flat-square)](https://www.npmjs.com/package/@levischuck/tiny-cose)
 [![](https://img.shields.io/jsr/v/%40levischuck/tiny-cose?style=flat-square&logo=jsr&label=JSR)](https://jsr.io/@levischuck/tiny-cose)

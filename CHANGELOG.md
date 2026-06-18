@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.14](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.13...v0.0.14) (2026-06-18)
+
+
+### Bug Fixes
+
+* Prepare for typescript 6 and 7 ([9c416b0](https://github.com/LeviSchuck/tiny-cose/commit/9c416b07112578330d66ea6d530c085a1e65bbff))
+* Test coverage ([c6db070](https://github.com/LeviSchuck/tiny-cose/commit/c6db07098ce387b945b261a474a36ff2d5e4d55d))
+
 ## [0.0.13](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.12...v0.0.13) (2025-09-23)
 
 

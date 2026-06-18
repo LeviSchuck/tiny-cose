@@ -3,6 +3,7 @@ import {
   assertEquals,
   assertNotEquals,
   assertRejects,
+  assertThrows,
 } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
@@ -16,8 +17,10 @@ import {
 import {
   EC2_CRV_P256,
   EC2_CRV_P384,
+  EC2_CRV_P521,
   ECDSA_SHA_256,
   ECDSA_SHA_384,
+  ECDSA_SHA_512,
   EDDSA,
   HMAC_SHA_256,
   HMAC_SHA_384,
@@ -31,6 +34,7 @@ import {
   KTY_RSA,
   KTY_SYMMETRIC,
   OKP_CRV_ED25519,
+  OKP_CRV_ED448,
   RSASSA_PKCS1_v1_5_SHA_256,
   RSASSA_PKCS1_v1_5_SHA_384,
   RSASSA_PKCS1_v1_5_SHA_512,
@@ -445,6 +449,12 @@ function decode(b64url: string): CBORType {
   return cbor;
 }
 
+const BYTES = new Uint8Array([1, 2, 3]);
+
+function coseMap(entries: [number, CBORType][]): Map<number, CBORType> {
+  return new Map(entries);
+}
+
 describe("Importing keys", () => {
   // it("Imports a RS256 Public Key", async () => {
   //   const cbor = decode('pgEDAlFoZWxsb0BleGFtcGxlLmNvbQSBAgM5AQAhQwEAASBZAQC39rfzb7mCsntRDoHf687SeuTxrQxO7A-sPfbmwS_zwLAAW3OGfhZuya8qDxoUF5ybosh74yEWOPKXZmE-ac-N8UQazh1OItA5aJILDI_gWYtkqi4-B08v-IgF_s1Au-fLll6gsQtvTOSBs6-ZYSkdVKNsLDUrp_D98nrLzgV4vydSEvwqlbt_Ykxgw6x_5ZhJIzuCvf0nMBYDr7dxQcEvxYJSARZIFNuMqJnc5iDEzCnT4C8sJOGxJqTV62nOnnvZMVEIF_zzXVWZgTPqi7D3RmCpsmD0C2lee1dV1lNf8v7dRRExESk4Wrfpm_Bdp8vFrzevWmTJyW8ezGWlbGCF');
@@ -479,8 +489,8 @@ describe("Importing keys", () => {
       decodeBase64("Jl7zJByUUrh1y5b94fES52I2SwgjCmSywcvuvjywS4Y="),
     );
   });
-  it("Unsupported Symmetric algorithm", () => {
-    assertRejects(async () => {
+  it("Unsupported Symmetric algorithm", async () => {
+    await assertRejects(async () => {
       const cbor = decode(
         "pQEEIFgg58-Wmw5lAYoVsBWNZ-Od1UsodZ-PDMPr27l95UzW1OYCUWhlbGxvQGV4YW1wbGUuY29tBIIJCgMF",
       );
@@ -488,7 +498,7 @@ describe("Importing keys", () => {
       const coseKey = parseCBORToCOSEKey(cbor);
       await importSymmetricKey(coseKey, true);
     });
-    assertRejects(async () => {
+    await assertRejects(async () => {
       const cbor = decode(
         "pQEBIAYhWCBMBNC6kELz0E-_DMukE1opN0PlMpI0BHryQ-Q-TuvG8CNYIAe8jNQE0LJjAwBNCF1rBPRWOH6bPvS6jgOgI76ZJyl6BIEB",
       );
@@ -622,5 +632,358 @@ describe("Importing keys", () => {
       ENCODER.encode("Hello world"),
     );
     assert(verified);
+  });
+});
+
+describe("Parsing COSE keys", () => {
+  it("Rejects unsupported common COSE parameters", () => {
+    assertThrows(() => parseCBORToCOSEKey(1));
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_SYMMETRIC],
+        [2, "kid"],
+        [3, HMAC_SHA_256],
+        [-1, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_SYMMETRIC],
+        [3, HMAC_SHA_256],
+        [4, KEY_OP_MAC_CREATE],
+        [-1, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_SYMMETRIC],
+        [3, HMAC_SHA_256],
+        [4, [0]],
+        [-1, BYTES],
+      ]))
+    );
+  });
+
+  it("Rejects malformed RSA keys and invalid RSA key operations", () => {
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_RSA],
+        [3, RSASSA_PKCS1_v1_5_SHA_256],
+        [-1, "n"],
+        [-2, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_RSA],
+        [3, RSASSA_PKCS1_v1_5_SHA_256],
+        [-1, BYTES],
+        [-2, BYTES],
+        [-3, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_RSA],
+        [3, RSASSA_PKCS1_v1_5_SHA_256],
+        [4, [KEY_OP_MAC_CREATE]],
+        [-1, BYTES],
+        [-2, BYTES],
+        [-3, BYTES],
+        [-4, BYTES],
+        [-5, BYTES],
+        [-6, BYTES],
+        [-7, BYTES],
+        [-8, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_RSA],
+        [3, RSASSA_PKCS1_v1_5_SHA_256],
+        [4, [KEY_OP_SIGN]],
+        [-1, BYTES],
+        [-2, BYTES],
+      ]))
+    );
+  });
+
+  it("Parses and rejects edge-case EC2 keys", () => {
+    assertEquals(
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [-1, EC2_CRV_P384],
+        [-2, BYTES],
+        [-3, BYTES],
+      ])).alg,
+      ECDSA_SHA_384,
+    );
+    assertEquals(
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [-1, EC2_CRV_P521],
+        [-2, BYTES],
+        [-3, BYTES],
+      ])).alg,
+      ECDSA_SHA_512,
+    );
+    assertEquals(
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, ECDSA_SHA_384],
+        [-1, EC2_CRV_P384],
+        [-2, BYTES],
+        [-3, BYTES],
+      ])).alg,
+      ECDSA_SHA_384,
+    );
+    assertEquals(
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, ECDSA_SHA_512],
+        [-1, EC2_CRV_P521],
+        [-2, BYTES],
+        [-3, BYTES],
+      ])).alg,
+      ECDSA_SHA_512,
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, 999],
+        [-1, EC2_CRV_P256],
+        [-2, BYTES],
+        [-3, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, ECDSA_SHA_256],
+        [-1, EC2_CRV_P256],
+        [-2, "x"],
+        [-3, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, ECDSA_SHA_256],
+        [4, [KEY_OP_MAC_CREATE]],
+        [-1, EC2_CRV_P256],
+        [-2, BYTES],
+        [-3, BYTES],
+        [-4, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, ECDSA_SHA_256],
+        [4, [KEY_OP_SIGN]],
+        [-1, EC2_CRV_P256],
+        [-2, BYTES],
+        [-3, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_EC2],
+        [3, ECDSA_SHA_256],
+        [-1, EC2_CRV_P256],
+        [-2, BYTES],
+        [-3, BYTES],
+        [-4, "d"],
+      ]))
+    );
+  });
+
+  it("Rejects malformed symmetric and EdDSA keys", () => {
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_SYMMETRIC],
+        [3, HMAC_SHA_256],
+        [-1, "k"],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_SYMMETRIC],
+        [3, HMAC_SHA_256],
+        [4, [KEY_OP_SIGN]],
+        [-1, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_OKP],
+        [-1, OKP_CRV_ED25519],
+        [-2, "x"],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_OKP],
+        [4, [KEY_OP_MAC_CREATE]],
+        [-1, OKP_CRV_ED25519],
+        [-2, BYTES],
+        [-4, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_OKP],
+        [-1, OKP_CRV_ED25519],
+        [-2, BYTES],
+        [-4, "d"],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_OKP],
+        [4, [KEY_OP_SIGN]],
+        [-1, OKP_CRV_ED25519],
+        [-2, BYTES],
+      ]))
+    );
+    assertThrows(() => parseCBORToCOSEKey(coseMap([[1, KTY_OKP]])));
+  });
+});
+
+describe("Importing generated COSE key variants", () => {
+  for (
+    const [name, hash, alg] of [
+      ["RS384", "SHA-384", RSASSA_PKCS1_v1_5_SHA_384],
+      ["RS512", "SHA-512", RSASSA_PKCS1_v1_5_SHA_512],
+      ["PS256", "SHA-256", RSASSA_PSS_SHA_256],
+      ["PS384", "SHA-384", RSASSA_PSS_SHA_384],
+      ["PS512", "SHA-512", RSASSA_PSS_SHA_512],
+    ] as const
+  ) {
+    it(`Imports generated ${name} private and public keys`, async () => {
+      const key = await crypto.subtle.generateKey(
+        {
+          name: name.startsWith("RS") ? "RSASSA-PKCS1-v1_5" : "RSA-PSS",
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+          hash: { name: hash },
+        },
+        true,
+        ["sign", "verify"],
+      );
+      const privateKey = await exportPrivateKey(key.privateKey);
+      const publicKey = await exportPublicKey(key.publicKey);
+
+      assertEquals(privateKey.alg, alg);
+      assertEquals(publicKey.alg, alg);
+      assertEquals((await importPrivateKey(privateKey, true)).kid, undefined);
+      assertEquals((await importPublicKey(publicKey)).kid, undefined);
+    });
+  }
+
+  it("Imports generated ES384 private and public keys", async () => {
+    const key = await crypto.subtle.generateKey(
+      {
+        name: "ECDSA",
+        namedCurve: "P-384",
+      },
+      true,
+      ["sign", "verify"],
+    );
+    const privateKey = await exportPrivateKey(key.privateKey);
+    const publicKey = await exportPublicKey(key.publicKey);
+
+    assertEquals(privateKey.alg, ECDSA_SHA_384);
+    assertEquals(publicKey.alg, ECDSA_SHA_384);
+    assertEquals((await importPrivateKey(privateKey, true)).kid, undefined);
+    assertEquals((await importPublicKey(publicKey)).kid, undefined);
+  });
+
+  it("Rejects unsupported or incomplete imported keys", async () => {
+    await assertRejects(() =>
+      importPrivateKey({
+        kty: KTY_RSA,
+        alg: RSASSA_PKCS1_v1_5_SHA_256,
+        n: BYTES,
+        e: BYTES,
+      } as never)
+    );
+    await assertRejects(() =>
+      importPrivateKey({
+        kty: KTY_EC2,
+        alg: ECDSA_SHA_256,
+        crv: EC2_CRV_P256,
+        x: BYTES,
+        y: BYTES,
+      } as never)
+    );
+    await assertRejects(() =>
+      importPrivateKey({
+        kty: KTY_OKP,
+        alg: EDDSA,
+        crv: OKP_CRV_ED448,
+        x: BYTES,
+        d: BYTES,
+      } as never)
+    );
+    await assertRejects(() =>
+      importPrivateKey({
+        kty: KTY_SYMMETRIC,
+        alg: HMAC_SHA_256,
+        k: BYTES,
+      } as never)
+    );
+    await assertRejects(() =>
+      importPublicKey({
+        kty: KTY_OKP,
+        alg: EDDSA,
+        crv: OKP_CRV_ED448,
+        x: BYTES,
+      } as never)
+    );
+    await assertRejects(() =>
+      importPublicKey({
+        kty: KTY_SYMMETRIC,
+        alg: HMAC_SHA_256,
+        k: BYTES,
+      } as never)
+    );
+  });
+
+  it("Exercises verify-only private imports and ES512 import branches", async () => {
+    const key = await crypto.subtle.generateKey(
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: { name: "SHA-256" },
+      },
+      true,
+      ["sign", "verify"],
+    );
+    const privateKey = await exportPrivateKey(key.privateKey);
+    privateKey.key_ops = [KEY_OP_VERIFY];
+    await assertRejects(() => importPrivateKey(privateKey));
+
+    await assertRejects(() =>
+      importPrivateKey({
+        kty: KTY_EC2,
+        alg: ECDSA_SHA_512,
+        crv: EC2_CRV_P521,
+        x: BYTES,
+        y: BYTES,
+        d: BYTES,
+      } as never)
+    );
+    assertEquals(
+      (await importPublicKey({
+        kty: KTY_EC2,
+        alg: ECDSA_SHA_512,
+        crv: EC2_CRV_P521,
+        x: BYTES,
+        y: BYTES,
+      } as never)).key.algorithm.name,
+      "ECDSA",
+    );
   });
 });

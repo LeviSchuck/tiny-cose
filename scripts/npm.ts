@@ -1,13 +1,10 @@
 // ex. scripts/build_npm.ts
 import { build, emptyDir } from "@deno/dnt";
 
+await emptyDir("./npm");
+
 const lockFile = JSON.parse(await Deno.readTextFile("./deno.lock"));
 
-/**
- * Searches through all specifiers that match the given pattern and returns the highest version.
- * @param pattern - The pattern to match (e.g., "jsr:@levischuck/tiny-cbor@*")
- * @returns The highest version found, or null if no matches
- */
 function findHighestVersion(pattern: string): string | null {
   const regex = new RegExp(pattern.replace(/\*/g, ".*"));
   let highestVersion: string | null = null;
@@ -25,12 +22,6 @@ function findHighestVersion(pattern: string): string | null {
   return highestVersion;
 }
 
-/**
- * Compares two semantic version strings.
- * @param a - First version string
- * @param b - Second version string
- * @returns 1 if a > b, -1 if a < b, 0 if equal
- */
 function compareVersions(a: string, b: string): number {
   const aParts = a.split(".").map(Number);
   const bParts = b.split(".").map(Number);
@@ -56,8 +47,6 @@ if (!tinyCborVersion || !tinyEncodingsVersion) {
     `Failed to get version from deno.lock: ${tinyCborVersion} ${tinyEncodingsVersion}`,
   );
 }
-
-await emptyDir("./npm");
 
 await build({
   entryPoints: ["./index.ts"],
@@ -85,10 +74,18 @@ await build({
     license: "MIT",
     repository: {
       type: "git",
-      url: "git+https://github.com/levischuck/tiny-cose.git",
+      url: "https://github.com/LeviSchuck/tiny-cose",
     },
     bugs: {
       url: "https://github.com/levischuck/tiny-cose/issues",
+    },
+    types: "./esm/index.d.ts",
+    exports: {
+      ".": {
+        types: "./esm/index.d.ts",
+        import: "./esm/index.js",
+        require: "./script/index.js",
+      },
     },
   },
   compilerOptions: {
@@ -99,8 +96,6 @@ await build({
     Deno.copyFileSync("LICENSE.txt", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
 
-    // Load package.json from the npm directory
-    // and add @levischuck/tiny-cbor to the dependencies
     const packageJson = JSON.parse(Deno.readTextFileSync("npm/package.json"));
     const dependencies = packageJson.dependencies || {};
     packageJson.dependencies = dependencies;
@@ -116,28 +111,26 @@ await build({
     if (proc.code !== 0) {
       throw new Error(`Failed to run npm install: ${proc.code}`);
     }
-    Deno.removeSync("npm/esm/deps/jsr.io/@levischuck/tiny-cbor", {
-      recursive: true,
-    });
-    Deno.removeSync("npm/script/deps/jsr.io/@levischuck/tiny-cbor", {
-      recursive: true,
-    });
-    Deno.removeSync("npm/src/deps/jsr.io/@levischuck/tiny-cbor", {
-      recursive: true,
-    });
 
-    Deno.removeSync("npm/esm/deps/jsr.io/@levischuck/tiny-encodings", {
-      recursive: true,
-    });
-    Deno.removeSync("npm/script/deps/jsr.io/@levischuck/tiny-encodings", {
-      recursive: true,
-    });
-    Deno.removeSync("npm/src/deps/jsr.io/@levischuck/tiny-encodings", {
-      recursive: true,
-    });
+    function removeIfExists(path: string): void {
+      try {
+        Deno.removeSync(path, { recursive: true });
+      } catch (_error) {
+        return;
+      }
+    }
 
-    // Scan all JS files (recursive) and replace
-    // "../deps/jsr.io/@levischuck/tiny-cbor/**/index.js" with "@levischuck/tiny-cbor"
+    for (
+      const packageName of [
+        "tiny-cbor",
+        "tiny-encodings",
+      ]
+    ) {
+      removeIfExists(`npm/esm/deps/jsr.io/@levischuck/${packageName}`);
+      removeIfExists(`npm/script/deps/jsr.io/@levischuck/${packageName}`);
+      removeIfExists(`npm/src/deps/jsr.io/@levischuck/${packageName}`);
+    }
+
     function listFilesRecursive(dir: string): string[] {
       const files: string[] = [];
       const entries = Deno.readDirSync(dir);
@@ -158,8 +151,6 @@ await build({
     const scriptFiles = listFilesRecursive("npm/script");
     const srcFiles = listFilesRecursive("npm/src");
     const allFiles = [...esmFiles, ...scriptFiles, ...srcFiles];
-
-    // Filter for JS files and replace imports
     const jsFiles = allFiles.filter((file) =>
       file.endsWith(".js") || file.endsWith(".d.ts") || file.endsWith(".ts")
     );
@@ -178,41 +169,39 @@ await build({
         Deno.writeTextFileSync(file, updatedContent);
       }
     }
-    // Finally see if any folders in deps are empty and remove them recursively depth first
+
+    for (const file of jsFiles) {
+      const content = Deno.readTextFileSync(file);
+      if (content.includes("deps/jsr.io/@levischuck")) {
+        throw new Error(`Found inlined JSR dependency reference in ${file}`);
+      }
+    }
+
     function removeEmptyDirsRecursive(dir: string): void {
       try {
-        const entries = Deno.readDirSync(dir);
-        const entryArray = Array.from(entries);
-
-        // First, recursively process all subdirectories
-        for (const entry of entryArray) {
+        const entries = Array.from(Deno.readDirSync(dir));
+        for (const entry of entries) {
           if (entry.isDirectory) {
-            const subDir = `${dir}/${entry.name}`;
-            removeEmptyDirsRecursive(subDir);
+            removeEmptyDirsRecursive(`${dir}/${entry.name}`);
           }
         }
 
-        // After processing subdirectories, check if current directory is empty
-        const updatedEntries = Array.from(Deno.readDirSync(dir));
-        if (updatedEntries.length === 0) {
-          // Directory is empty, remove it
+        if (Array.from(Deno.readDirSync(dir)).length === 0) {
           Deno.removeSync(dir);
         }
       } catch (_error) {
-        // Directory might not exist or we don't have permission, skip it
         return;
       }
     }
+
     removeEmptyDirsRecursive("npm/esm/deps");
     removeEmptyDirsRecursive("npm/script/deps");
     removeEmptyDirsRecursive("npm/src/deps");
 
-    // Lastly, update all src imports that end in .js to use no extension
     for (const file of srcFiles) {
       if (!file.endsWith(".ts")) {
         continue;
       }
-      console.log(`Updating ${file}`);
       const content = Deno.readTextFileSync(file);
       const updatedContent = content.replace(/\.js('|")/g, ".ts$1");
       Deno.writeTextFileSync(file, updatedContent);

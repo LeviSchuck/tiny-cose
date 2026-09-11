@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.15...v0.1.0) (2026-09-11)
+
+
+### Features
+
+* Post Quantum Algorithms ([#10](https://github.com/LeviSchuck/tiny-cose/issues/10)) ([f26ef2a](https://github.com/LeviSchuck/tiny-cose/commit/f26ef2a1f31b3bd704e9c1aa5aa7af59ffd3867d))
+
 ## [0.0.15](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.14...v0.0.15) (2026-09-11)
 
 

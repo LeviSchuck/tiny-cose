@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.15](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.14...v0.0.15) (2026-09-11)
+
+
+### Bug Fixes
+
+* Include crv on es256 ([#7](https://github.com/LeviSchuck/tiny-cose/issues/7)) ([70c5f44](https://github.com/LeviSchuck/tiny-cose/commit/70c5f4432c91a1296179a5e7061bc99bec28e980))
+
 ## [0.0.14](https://github.com/LeviSchuck/tiny-cose/compare/v0.0.13...v0.0.14) (2026-06-18)
 
 

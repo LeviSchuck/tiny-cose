@@ -308,6 +308,7 @@ export async function importPrivateKey(
     }
     const jwk: JsonWebKey = {
       alg,
+      crv: namedCurve,
       kty: "EC",
       key_ops,
       x: encodeBase64Url(key.x),
@@ -515,6 +516,7 @@ export async function importPublicKey(key: COSEKeyAll): Promise<ImportedKey> {
     }
     const jwk: JsonWebKey = {
       alg,
+      crv: namedCurve,
       kty: "EC",
       key_ops,
       x: encodeBase64Url(key.x),

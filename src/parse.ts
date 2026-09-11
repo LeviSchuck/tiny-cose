@@ -64,6 +64,17 @@ function mlDsaPublicKeyLength(alg: ML_DSA_ALG): number {
   }
 }
 
+function ecdsaAlgForCurve(crv: EC2_CRV_ALL): ECDSA_ALG {
+  switch (crv) {
+    case EC2_CRV_P256:
+      return ECDSA_SHA_256;
+    case EC2_CRV_P384:
+      return ECDSA_SHA_384;
+    case EC2_CRV_P521:
+      return ECDSA_SHA_512;
+  }
+}
+
 export function parseCBORToCOSEKey(cbor: CBORType): COSEKeyAll {
   if (!(cbor instanceof Map)) {
     throw new Error("Unsupported CBOR input");
@@ -242,19 +253,7 @@ export function parseCBORToCOSEKey(cbor: CBORType): COSEKeyAll {
     let ecdsaCrv: EC2_CRV_ALL;
     if (!alg && crv) {
       ecdsaCrv = crv as EC2_CRV_ALL;
-      switch (crv) {
-        case EC2_CRV_P256:
-          ecdsaAlg = ECDSA_SHA_256;
-          break;
-        case EC2_CRV_P384:
-          ecdsaAlg = ECDSA_SHA_384;
-          break;
-        case EC2_CRV_P521:
-          ecdsaAlg = ECDSA_SHA_512;
-          break;
-        default:
-          throw new Error("Unreachable");
-      }
+      ecdsaAlg = ecdsaAlgForCurve(ecdsaCrv);
     } else {
       ecdsaAlg = alg as ECDSA_ALG;
       switch (alg) {
@@ -274,12 +273,6 @@ export function parseCBORToCOSEKey(cbor: CBORType): COSEKeyAll {
 
     if (!(x instanceof Uint8Array) || !(y instanceof Uint8Array)) {
       throw new Error("Malformed COSE key");
-    }
-    if (
-      ecdsaCrv != EC2_CRV_P256 && ecdsaCrv != EC2_CRV_P384 &&
-      ecdsaCrv != EC2_CRV_P521
-    ) {
-      throw new Error(`Unsupported elliptic curve ${ecdsaCrv}`);
     }
     const d = cbor.get(-4); // Private key
     if (d) {

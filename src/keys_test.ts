@@ -513,6 +513,8 @@ describe("ML-DSA keys", () => {
 
       const importedPrivate = await importPrivateKey(parsedPrivate, true);
       const importedPublic = await importPublicKey(parsedPublic);
+      const importedNotExtractable = await importPrivateKey(parsedPrivate);
+      assertEquals(importedNotExtractable.key.extractable, false);
       const data = ENCODER.encode(`Sign with ${name}`);
       const signature = await crypto.subtle.sign(
         { name },
@@ -756,6 +758,7 @@ describe("Importing keys", () => {
     );
     const coseKey = parseCBORToCOSEKey(cbor);
     const { key } = await importPrivateKey(coseKey, true);
+    assertEquals((await importPrivateKey(coseKey)).key.extractable, false);
     const signature = await crypto.subtle.sign(
       { name: "Ed25519" },
       key,
@@ -853,6 +856,29 @@ describe("Parsing COSE keys", () => {
         [-2, BYTES],
       ]))
     );
+  });
+
+  it("Parses every supported RSA algorithm", () => {
+    for (
+      const alg of [
+        RSASSA_PKCS1_v1_5_SHA_256,
+        RSASSA_PKCS1_v1_5_SHA_384,
+        RSASSA_PKCS1_v1_5_SHA_512,
+        RSASSA_PSS_SHA_256,
+        RSASSA_PSS_SHA_384,
+        RSASSA_PSS_SHA_512,
+      ]
+    ) {
+      assertEquals(
+        parseCBORToCOSEKey(coseMap([
+          [1, KTY_RSA],
+          [3, alg],
+          [-1, BYTES],
+          [-2, BYTES],
+        ])).alg,
+        alg,
+      );
+    }
   });
 
   it("Parses and rejects edge-case EC2 keys", () => {

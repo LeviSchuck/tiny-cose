@@ -9,11 +9,13 @@ import type {
   KEY_OP_SIGN,
   KEY_OP_VERIFY,
   KEY_OPS_ALL,
+  KTY_AKP,
   KTY_ALL,
   KTY_EC2,
   KTY_OKP,
   KTY_RSA,
   KTY_SYMMETRIC,
+  ML_DSA_ALG,
   OKP_CRV_EDDSA,
   RSASSA_PKCS1_v1_5_ALG,
   RSASSA_PSS_ALG,
@@ -61,6 +63,21 @@ export interface EDDSA_Private_COSE_Key extends COSEKey {
   key_ops?: (typeof KEY_OP_VERIFY | typeof KEY_OP_SIGN)[];
   x: Uint8Array;
   d: Uint8Array;
+}
+
+export interface ML_DSA_Public_COSE_Key extends COSEKey {
+  kty: typeof KTY_AKP;
+  alg: ML_DSA_ALG;
+  key_ops?: (typeof KEY_OP_VERIFY)[];
+  pub: Uint8Array;
+}
+
+export interface ML_DSA_Private_COSE_Key extends COSEKey {
+  kty: typeof KTY_AKP;
+  alg: ML_DSA_ALG;
+  key_ops?: (typeof KEY_OP_VERIFY | typeof KEY_OP_SIGN)[];
+  pub: Uint8Array;
+  priv: Uint8Array;
 }
 
 export interface RSAPublicKey {
@@ -114,12 +131,14 @@ export interface HMAC_COSE_Key extends COSEKey {
 export type COSEPublicKey =
   | ECDSA_Public_COSE_Key
   | EDDSA_Public_COSE_Key
+  | ML_DSA_Public_COSE_Key
   | RSASSA_PKCS1_v1_5_Public_COSE_Key
   | RSASSA_PSS_Public_COSE_Key;
 
 export type COSEPrivateKey =
   | ECDSA_Private_COSE_Key
   | EDDSA_Private_COSE_Key
+  | ML_DSA_Private_COSE_Key
   | RSASSA_PKCS1_v1_5_Private_COSE_Key
   | RSASSA_PSS_Private_COSE_Key;
 

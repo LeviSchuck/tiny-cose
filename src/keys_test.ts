@@ -15,6 +15,8 @@ import {
   importSymmetricKey,
 } from "./keys.ts";
 import {
+  AKP_PRIV,
+  AKP_PUB,
   EC2_CRV_P256,
   EC2_CRV_P384,
   EC2_CRV_P521,
@@ -29,10 +31,14 @@ import {
   KEY_OP_MAC_VERIFY,
   KEY_OP_SIGN,
   KEY_OP_VERIFY,
+  KTY_AKP,
   KTY_EC2,
   KTY_OKP,
   KTY_RSA,
   KTY_SYMMETRIC,
+  ML_DSA_44,
+  ML_DSA_65,
+  ML_DSA_87,
   OKP_CRV_ED25519,
   OKP_CRV_ED448,
   RSASSA_PKCS1_v1_5_SHA_256,
@@ -454,6 +460,147 @@ const BYTES = new Uint8Array([1, 2, 3]);
 function coseMap(entries: [number, CBORType][]): Map<number, CBORType> {
   return new Map(entries);
 }
+
+const ML_DSA_CASES = [
+  ["ML-DSA-44", ML_DSA_44, 1312, 2420],
+  ["ML-DSA-65", ML_DSA_65, 1952, 3309],
+  ["ML-DSA-87", ML_DSA_87, 2592, 4627],
+] as const;
+
+describe("ML-DSA keys", () => {
+  for (
+    const [name, alg, publicKeyLength, signatureLength] of ML_DSA_CASES
+  ) {
+    it(`Round trips ${name} public and private keys`, async () => {
+      const generated = await crypto.subtle.generateKey(
+        { name },
+        true,
+        ["sign", "verify"],
+      ) as CryptoKeyPair;
+      const kid = ENCODER.encode(`${name}@example.com`);
+      const privateKey = await exportPrivateKey(generated.privateKey, kid);
+      const publicKey = await exportPublicKey(generated.publicKey, kid);
+
+      assert(privateKey.kty == KTY_AKP);
+      assert(publicKey.kty == KTY_AKP);
+      assertEquals(privateKey.alg, alg);
+      assertEquals(publicKey.alg, alg);
+      assertEquals(privateKey.key_ops, [KEY_OP_SIGN]);
+      assertEquals(publicKey.key_ops, [KEY_OP_VERIFY]);
+      assertEquals(privateKey.pub.byteLength, publicKeyLength);
+      assertEquals(publicKey.pub.byteLength, publicKeyLength);
+      assertEquals(privateKey.priv.byteLength, 32);
+
+      const parsedPrivate = parseCBORToCOSEKey(coseMap([
+        [1, privateKey.kty],
+        [2, kid],
+        [3, privateKey.alg],
+        [4, privateKey.key_ops],
+        [AKP_PUB, privateKey.pub],
+        [AKP_PRIV, privateKey.priv],
+      ]));
+      const parsedPublic = parseCBORToCOSEKey(coseMap([
+        [1, publicKey.kty],
+        [2, kid],
+        [3, publicKey.alg],
+        [4, publicKey.key_ops],
+        [AKP_PUB, publicKey.pub],
+      ]));
+      assert(parsedPrivate.kty == KTY_AKP);
+      assert(parsedPublic.kty == KTY_AKP);
+      assertEquals(parsedPrivate, privateKey);
+      assertEquals(parsedPublic, publicKey);
+
+      const importedPrivate = await importPrivateKey(parsedPrivate, true);
+      const importedPublic = await importPublicKey(parsedPublic);
+      const data = ENCODER.encode(`Sign with ${name}`);
+      const signature = await crypto.subtle.sign(
+        { name },
+        importedPrivate.key,
+        data,
+      );
+      assertEquals(signature.byteLength, signatureLength);
+      assert(
+        await crypto.subtle.verify(
+          { name },
+          importedPublic.key,
+          signature,
+          data,
+        ),
+      );
+      assertEquals(importedPrivate.kid, kid);
+      assertEquals(importedPublic.kid, kid);
+
+      const withoutKeyOps = { ...privateKey, key_ops: undefined };
+      const importedWithoutKeyOps = await importPrivateKey(
+        withoutKeyOps,
+        true,
+      );
+      assertEquals(importedWithoutKeyOps.key.usages, ["sign"]);
+    });
+  }
+
+  it("Rejects malformed AKP keys", async () => {
+    const publicKey = new Uint8Array(1312);
+    const privateKey = new Uint8Array(32);
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_AKP],
+        [3, ML_DSA_44],
+        [AKP_PUB, "pub"],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_AKP],
+        [3, ML_DSA_44],
+        [AKP_PUB, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_AKP],
+        [3, ML_DSA_44],
+        [AKP_PUB, publicKey],
+        [AKP_PRIV, BYTES],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_AKP],
+        [3, ML_DSA_44],
+        [4, [KEY_OP_MAC_CREATE]],
+        [AKP_PUB, publicKey],
+        [AKP_PRIV, privateKey],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_AKP],
+        [3, ML_DSA_44],
+        [4, [KEY_OP_SIGN]],
+        [AKP_PUB, publicKey],
+      ]))
+    );
+    assertThrows(() =>
+      parseCBORToCOSEKey(coseMap([
+        [1, KTY_AKP],
+        [3, 999],
+        [AKP_PUB, publicKey],
+      ]))
+    );
+    await assertRejects(
+      () =>
+        importPrivateKey({
+          kty: KTY_AKP,
+          alg: ML_DSA_44,
+          pub: publicKey,
+        } as never),
+      Error,
+      "Cannot import ML-DSA private key, components are missing",
+    );
+  });
+});
 
 describe("Importing keys", () => {
   // it("Imports a RS256 Public Key", async () => {

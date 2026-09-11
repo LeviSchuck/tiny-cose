@@ -1,4 +1,6 @@
 import {
+  AKP_PRIV,
+  AKP_PUB,
   type EC2_CRV_ALL,
   EC2_CRV_P256,
   EC2_CRV_P384,
@@ -16,10 +18,15 @@ import {
   KEY_OP_SIGN,
   KEY_OP_VERIFY,
   type KEY_OPS_ALL,
+  KTY_AKP,
   KTY_EC2,
   KTY_OKP,
   KTY_RSA,
   KTY_SYMMETRIC,
+  ML_DSA_44,
+  ML_DSA_65,
+  ML_DSA_87,
+  type ML_DSA_ALG,
   OKP_CRV_ED25519,
   RSASSA_PKCS1_v1_5_SHA_256,
   RSASSA_PKCS1_v1_5_SHA_384,
@@ -36,6 +43,8 @@ import type {
   EDDSA_Private_COSE_Key,
   EDDSA_Public_COSE_Key,
   HMAC_COSE_Key,
+  ML_DSA_Private_COSE_Key,
+  ML_DSA_Public_COSE_Key,
   RSAPrivateKey,
   RSAPublicKey,
   RSASSA_PKCS1_v1_5_Private_COSE_Key,
@@ -43,6 +52,17 @@ import type {
   RSASSA_PSS_Private_COSE_Key,
   RSASSA_PSS_Public_COSE_Key,
 } from "./types.ts";
+
+function mlDsaPublicKeyLength(alg: ML_DSA_ALG): number {
+  switch (alg) {
+    case ML_DSA_44:
+      return 1312;
+    case ML_DSA_65:
+      return 1952;
+    case ML_DSA_87:
+      return 2592;
+  }
+}
 
 export function parseCBORToCOSEKey(cbor: CBORType): COSEKeyAll {
   if (!(cbor instanceof Map)) {
@@ -155,6 +175,61 @@ export function parseCBORToCOSEKey(cbor: CBORType): COSEKeyAll {
         };
       return result;
     }
+  } else if (
+    kty == KTY_AKP &&
+    (alg == ML_DSA_44 || alg == ML_DSA_65 || alg == ML_DSA_87)
+  ) {
+    const mlDsaAlg = alg as ML_DSA_ALG;
+    const pub = cbor.get(AKP_PUB);
+    const priv = cbor.get(AKP_PRIV);
+    if (
+      !(pub instanceof Uint8Array) ||
+      pub.byteLength != mlDsaPublicKeyLength(mlDsaAlg)
+    ) {
+      throw new Error("Malformed ML-DSA public key");
+    }
+    if (priv !== undefined) {
+      if (!(priv instanceof Uint8Array) || priv.byteLength != 32) {
+        throw new Error("Malformed ML-DSA private key");
+      }
+      if (keyOps) {
+        for (const op of keyOps) {
+          if (op != KEY_OP_VERIFY && op != KEY_OP_SIGN) {
+            throw new Error(
+              `Unsupported "key_ops" operation ${op} on private AKP key`,
+            );
+          }
+        }
+      }
+      const privateKey: ML_DSA_Private_COSE_Key = {
+        alg: mlDsaAlg,
+        kty: KTY_AKP,
+        kid: kid as Uint8Array,
+        key_ops: keyOps as
+          | (typeof KEY_OP_VERIFY | typeof KEY_OP_SIGN)[]
+          | undefined,
+        pub,
+        priv,
+      };
+      return privateKey;
+    }
+    if (keyOps) {
+      for (const op of keyOps) {
+        if (op != KEY_OP_VERIFY) {
+          throw new Error(
+            `Unsupported "key_ops" operation ${op} on public AKP key`,
+          );
+        }
+      }
+    }
+    const publicKey: ML_DSA_Public_COSE_Key = {
+      alg: mlDsaAlg,
+      kty: KTY_AKP,
+      kid: kid as Uint8Array,
+      key_ops: keyOps as (typeof KEY_OP_VERIFY)[] | undefined,
+      pub,
+    };
+    return publicKey;
   } else if (
     kty == KTY_EC2 &&
     (alg == ECDSA_SHA_256 || alg == ECDSA_SHA_384 || alg == ECDSA_SHA_512 ||

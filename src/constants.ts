@@ -13,6 +13,14 @@ export type ECDSA_ALG =
 // EdDSA
 export const EDDSA = -8;
 
+export const ML_DSA_44 = -48;
+export const ML_DSA_65 = -49;
+export const ML_DSA_87 = -50;
+export type ML_DSA_ALG =
+  | typeof ML_DSA_44
+  | typeof ML_DSA_65
+  | typeof ML_DSA_87;
+
 export const RSASSA_PSS_SHA_256 = -37;
 export const RSASSA_PSS_SHA_384 = -38;
 export const RSASSA_PSS_SHA_512 = -39;
@@ -40,6 +48,7 @@ export type HMAC_SHA_ALG =
 export type ALG_ALL =
   | ECDSA_ALG
   | typeof EDDSA
+  | ML_DSA_ALG
   | RSASSA_PSS_ALG
   | RSASSA_PKCS1_v1_5_ALG
   | HMAC_SHA_ALG;
@@ -72,16 +81,21 @@ export const RSA_QI = -8;
 
 export const OCTET_KEY = -1;
 
+export const AKP_PUB = -1;
+export const AKP_PRIV = -2;
+
 // COSE Key Types
 export const KTY_OKP = 1;
 export const KTY_EC2 = 2;
 export const KTY_RSA = 3;
 export const KTY_SYMMETRIC = 4;
+export const KTY_AKP = 7;
 export type KTY_ALL =
   | typeof KTY_OKP
   | typeof KTY_EC2
   | typeof KTY_SYMMETRIC
-  | typeof KTY_RSA;
+  | typeof KTY_RSA
+  | typeof KTY_AKP;
 
 // COSE Elliptic Curves
 export const EC2_CRV_P256 = 1;

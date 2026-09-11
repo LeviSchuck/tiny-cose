@@ -13,10 +13,15 @@ import {
   KEY_OP_SIGN,
   KEY_OP_VERIFY,
   type KEY_OPS_ALL,
+  KTY_AKP,
   KTY_EC2,
   KTY_OKP,
   KTY_RSA,
   KTY_SYMMETRIC,
+  ML_DSA_44,
+  ML_DSA_65,
+  ML_DSA_87,
+  type ML_DSA_ALG,
   OKP_CRV_ED25519,
   RSASSA_PKCS1_v1_5_SHA_256,
   RSASSA_PKCS1_v1_5_SHA_384,
@@ -35,6 +40,8 @@ import type {
   EDDSA_Private_COSE_Key,
   EDDSA_Public_COSE_Key,
   HMAC_COSE_Key,
+  ML_DSA_Private_COSE_Key,
+  ML_DSA_Public_COSE_Key,
   RSASSA_PKCS1_v1_5_Private_COSE_Key,
   RSASSA_PKCS1_v1_5_Public_COSE_Key,
   RSASSA_PSS_Private_COSE_Key,
@@ -67,6 +74,9 @@ type JWK_RSA_Private = {
   qi: string;
 };
 type JWK_EC2_Public = { x: string; y: string };
+type JWK_AKP_Public = { pub: string };
+type JWK_AKP_Private = JWK_AKP_Public & { priv: string };
+type ML_DSA_NAME = "ML-DSA-44" | "ML-DSA-65" | "ML-DSA-87";
 
 export interface ImportedKey {
   key: CryptoKey;
@@ -103,6 +113,36 @@ function ec2Public(jwk: JWK_EC2_Public): { x: Uint8Array; y: Uint8Array } {
     x: decodeBase64Url(jwk.x),
     y: decodeBase64Url(jwk.y),
   };
+}
+
+function isMlDsaName(alg: string | undefined): alg is ML_DSA_NAME {
+  return alg == "ML-DSA-44" || alg == "ML-DSA-65" || alg == "ML-DSA-87";
+}
+
+function mlDsaAlg(name: ML_DSA_NAME): ML_DSA_ALG {
+  switch (name) {
+    case "ML-DSA-44":
+      return ML_DSA_44;
+    case "ML-DSA-65":
+      return ML_DSA_65;
+    case "ML-DSA-87":
+      return ML_DSA_87;
+  }
+}
+
+function mlDsaName(alg: ML_DSA_ALG): ML_DSA_NAME {
+  switch (alg) {
+    case ML_DSA_44:
+      return "ML-DSA-44";
+    case ML_DSA_65:
+      return "ML-DSA-65";
+    case ML_DSA_87:
+      return "ML-DSA-87";
+  }
+}
+
+function isMlDsaAlg(alg: number | undefined): alg is ML_DSA_ALG {
+  return alg == ML_DSA_44 || alg == ML_DSA_65 || alg == ML_DSA_87;
 }
 
 export async function exportPrivateKey(
@@ -169,6 +209,24 @@ export async function exportPrivateKey(
       ) as (typeof KEY_OP_SIGN | typeof KEY_OP_VERIFY)[],
       ...ec2Public(jwk as JWK_EC2_Public),
       d: decodeBase64Url(jwk.d),
+    };
+    return out;
+  } else if (
+    jwk.kty == "AKP" && isMlDsaName(jwk.alg) &&
+    (jwk as Partial<JWK_AKP_Private>).pub &&
+    (jwk as Partial<JWK_AKP_Private>).priv
+  ) {
+    const akp = jwk as JsonWebKey & JWK_AKP_Private;
+    const out: ML_DSA_Private_COSE_Key = {
+      kty: KTY_AKP,
+      alg: mlDsaAlg(jwk.alg),
+      kid,
+      key_ops: keyOps(
+        jwk.key_ops as string[],
+        false,
+      ) as (typeof KEY_OP_SIGN | typeof KEY_OP_VERIFY)[],
+      pub: decodeBase64Url(akp.pub),
+      priv: decodeBase64Url(akp.priv),
     };
     return out;
   } else if (jwk.x && jwk.d && jwk.kty == "OKP" && jwk.crv == "Ed25519") {
@@ -326,6 +384,29 @@ export async function importPrivateKey(
       key_ops,
     );
     return { key: cryptoKey, kid: key.kid };
+  } else if (isMlDsaAlg(key.alg)) {
+    const privateKey = key as ML_DSA_Private_COSE_Key;
+    if (!privateKey.priv) {
+      throw new Error(
+        "Cannot import ML-DSA private key, components are missing",
+      );
+    }
+    const name = mlDsaName(key.alg);
+    const jwk: JsonWebKey & JWK_AKP_Private = {
+      alg: name,
+      kty: "AKP",
+      key_ops,
+      pub: encodeBase64Url(privateKey.pub),
+      priv: encodeBase64Url(privateKey.priv),
+    };
+    const cryptoKey = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name },
+      extractable || false,
+      key.key_ops ? key_ops : ["sign"],
+    );
+    return { key: cryptoKey, kid: key.kid };
   } else if (key.alg == EDDSA) {
     if (key.crv != OKP_CRV_ED25519) {
       throw new Error("Unsupported EDDSA curve");
@@ -405,6 +486,22 @@ export async function exportPublicKey(
         false,
       ) as (typeof KEY_OP_VERIFY)[],
       ...ec2Public(jwk as JWK_EC2_Public),
+    };
+    return out;
+  } else if (
+    jwk.kty == "AKP" && isMlDsaName(jwk.alg) &&
+    (jwk as Partial<JWK_AKP_Public>).pub
+  ) {
+    const akp = jwk as JsonWebKey & JWK_AKP_Public;
+    const out: ML_DSA_Public_COSE_Key = {
+      kty: KTY_AKP,
+      alg: mlDsaAlg(jwk.alg),
+      kid,
+      key_ops: keyOps(
+        jwk.key_ops as string[],
+        false,
+      ) as (typeof KEY_OP_VERIFY)[],
+      pub: decodeBase64Url(akp.pub),
     };
     return out;
   } else if (jwk.kty == "OKP" && jwk.crv == "Ed25519" && jwk.x) {
@@ -529,6 +626,23 @@ export async function importPublicKey(key: COSEKeyAll): Promise<ImportedKey> {
         name: "ECDSA",
         namedCurve,
       },
+      true,
+      key_ops,
+    );
+    return { key: cryptoKey, kid: key.kid };
+  } else if (isMlDsaAlg(key.alg)) {
+    const publicKey = key as ML_DSA_Public_COSE_Key;
+    const name = mlDsaName(key.alg);
+    const jwk: JsonWebKey & JWK_AKP_Public = {
+      alg: name,
+      kty: "AKP",
+      key_ops,
+      pub: encodeBase64Url(publicKey.pub),
+    };
+    const cryptoKey = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name },
       true,
       key_ops,
     );
